@@ -3,6 +3,7 @@ package com.druid.config;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -88,7 +89,7 @@ public class DataBaseConfiguration {
     @Value("${spring.slave.datasource.password}")
     private String slavePassword;
 
-    @Bean
+    @Bean(name="masterDataSource")
     public DataSource master() {
         System.out.println("注入Master druid！！！");
         DruidDataSource datasource = new DruidDataSource();
@@ -109,7 +110,7 @@ public class DataBaseConfiguration {
         return datasource;
     }
 
-    @Bean
+    @Bean(name = "slaveDataSource")
     public DataSource slave() {
         System.out.println("Slave druid！！！");
         DruidDataSource datasource = new DruidDataSource();
@@ -131,15 +132,15 @@ public class DataBaseConfiguration {
     }
 
     @Bean
-	public DynamicDataSource dynamicDataSource() {
-        DataSource dataSourceMaster = master();
-		Map<Object, Object> targetDataSources = new HashMap<Object, Object>();
-		targetDataSources.put(DynamicDataSource.DatabaseType.Master, dataSourceMaster);
-		targetDataSources.put(DynamicDataSource.DatabaseType.Slave, slave());
+	public DynamicDataSource dynamicDataSource(@Qualifier("masterDataSource") DataSource masterDataSource,
+                                               @Qualifier("slaveDataSource") DataSource slaveDataSource) {
+ 		Map<Object, Object> targetDataSources = new HashMap<Object, Object>();
+		targetDataSources.put(DynamicDataSource.DatabaseType.Master, masterDataSource);
+		targetDataSources.put(DynamicDataSource.DatabaseType.Slave, slaveDataSource);
 
 		DynamicDataSource dataSource = new DynamicDataSource();
         dataSource.setTargetDataSources(targetDataSources);// 该方法是AbstractRoutingDataSource的方法
-        dataSource.setDefaultTargetDataSource(dataSourceMaster);
+        dataSource.setDefaultTargetDataSource(masterDataSource);
 		return dataSource;
 	}
 
